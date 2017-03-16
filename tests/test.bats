@@ -11,7 +11,7 @@ GitHub "github"
 @test "exports instance methods" {
   [ -n "${github_get+1}" ]
   [ -n "${github_set+1}" ]
-  [ -n "${github_blah+1}" ]
+  [ -n "${github_login+1}" ]
 }
 
 @test "_jsonval helper test" {
