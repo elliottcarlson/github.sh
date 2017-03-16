@@ -6,7 +6,7 @@
 ## #!/usr/bin/env bash
 ##
 ## . git-bash-lib.sh
-## 
+##
 ## function main()
 ## {
 ##   GitHub 'github'
@@ -32,9 +32,9 @@
 function GitHub()
 {
   # Defaults
-  #USERNAME=$(git config user.email)
+  USERNAME=$(git config user.email)
   GITHUB_HOST="https://github.com/"
-  
+
   # Instanciation
   base=$FUNCNAME
   this=$1
@@ -106,7 +106,7 @@ function GitHub_login()
   if [ -z ${USERNAME+x} ]; then
     if [ -f "$HOME/.git-credentials" ]; then
       # Get the base domain from GITHUB_HOST
-      uri_parser "$GITHUB_HOST" || { 
+      uri_parser "$GITHUB_HOST" || {
 	echo "ERR: Github host is not a valid uri: $GITHUB_HOST"
 	_usage
       }
@@ -116,14 +116,22 @@ function GitHub_login()
       while read -r line; do
 	uri_parser $line
 	if [ $uri_host == $_base_host ]; then
-	  USERNAME=$uri_user
-	  PASSWORD=$uri_password
-	  break
+          echo "Found ${use_use}@${_base_host} credentials in $HOME/.git-credentials."
+          echo "Do you want to use these credentials? <Y>es or <N>o"
+          read -s -n1 REPLY
+          case $REPLY in
+            y | Y)
+              USERNAME=$uri_user
+              PASSWORD=$uri_password
+              break
+              ;;
+          esac
 	fi
       done < "$HOME/.git-credentials"
     fi
 
-    if [ ${USERNAME+x} =~ "" ]; then
+    # Username still not found
+    if [ -z ${USERNAME+x} ]; then
       read -ep "Enter the Github username: " USERNAME
     fi
   fi
@@ -251,13 +259,13 @@ _json_parse_array() {
         _json_parse_value "$1" "`printf "%012d" $index`"
 
         (( index++ ))
-        ary+="$Value" 
+        ary+="$Value"
 
         read -r Token
         case "$Token" in
           ']') break ;;
           ',') ary+=_ ;;
-          *) 
+          *)
             echo "Array syntax malformed"
             break ;;
         esac
@@ -281,7 +289,7 @@ _json_parse_object() {
         case "$Token" in
           '"'*'"'|\$[A-Za-z0-9_]*) key=$Token ;;
           # If we get here then we aren't on a valid key
-          *) 
+          *)
             echo "Object without a Key"
             break
             ;;
@@ -293,7 +301,7 @@ _json_parse_object() {
         # The value
         read -r Token
         _json_parse_value "$1" "$key"
-        obj+="$key:$Value"        
+        obj+="$key:$Value"
 
         read -r Token
         case "$Token" in
@@ -311,8 +319,8 @@ _json_sanitize_value() {
   IFS=
   while read -r -n 1 token; do
     case "$token" in
-      [\-\\\"\;,=\(\)\[\]{}.\':\ ]) 
-        value+=`printf "%d" \'$token` 
+      [\-\\\"\;,=\(\)\[\]{}.\':\ ])
+        value+=`printf "%d" \'$token`
         ;;
       *)
         value+="$token"
@@ -337,11 +345,11 @@ _json_parse_value() {
     '{') _json_parse_object "$jpath" ;;
     '[') _json_parse_array  "$jpath" ;;
 
-    *) 
-      Value=$Token 
+    *)
+      Value=$Token
       Path="$Prefix$prej"
       Path=${Path/#_/}
-      echo _data_${Path// /}=$Value 
+      echo _data_${Path// /}=$Value
       ;;
   esac
 }
