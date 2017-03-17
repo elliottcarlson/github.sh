@@ -32,7 +32,7 @@
 function GitHub()
 {
   # Defaults
-  USERNAME=$(git config user.email)
+  #USERNAME=$(git config user.email)
   GITHUB_HOST="https://github.com/"
 
   # Instanciation
@@ -94,6 +94,24 @@ function GitHub_get()
   eval ${this}_ret=${!2}
 }
 
+## @description Authenticate on $GITHUB_HOST; if no $USERNAME and/or $PASSWORD
+## are provided, attempt to use the credentials from the ~/.git-credentials
+## store and find matches related to $GITHUB_HOST. If it still fails, ask for
+## the login and password directly.
+##
+## Credentials are tested to determine that they are valid, and in the event
+## that the account has 2FA enabled, it will notify the user that they need to
+## create a personl access token.
+##
+## @example
+##   ${instance_name}_login
+##
+## @noargs
+##
+## @exitcode 0  Successful login
+## @exitcode 10 $GITHUB_HOST it not a valid uri
+## @exitcode 20 Account requires access token due to 2FA
+## @exitcode 30 Invalud username of password
 function GitHub_login()
 {
   base=$(expr "$FUNCNAME" : '\([a-zA-Z][a-zA-Z0-9]*\)')
@@ -107,8 +125,8 @@ function GitHub_login()
     if [ -f "$HOME/.git-credentials" ]; then
       # Get the base domain from GITHUB_HOST
       uri_parser "$GITHUB_HOST" || {
-	echo "ERR: Github host is not a valid uri: $GITHUB_HOST"
-	_usage
+	eval ${this}_err=\"Github host is not a valid uri: $GITHUB_HOST\"
+	return 10
       }
       eval _base_host=$uri_host
 
@@ -116,7 +134,7 @@ function GitHub_login()
       while read -r line; do
 	uri_parser $line
 	if [ $uri_host == $_base_host ]; then
-          echo "Found ${use_use}@${_base_host} credentials in $HOME/.git-credentials."
+          echo "Found ${uri_user}@${_base_host} credentials in $HOME/.git-credentials."
           echo "Do you want to use these credentials? <Y>es or <N>o"
           read -s -n1 REPLY
           case $REPLY in
@@ -147,21 +165,24 @@ function GitHub_login()
   # Perform a test login
   _test_login=$(curl $CURL_OPT $GITHUB_HOST)
 
+  echo $GITHUB_HOST
+
   # Check if the account requires 2FA
   if [[ $_test_login == *"Must specify two-factor authentication"* ]]; then
-    echo "ERR: Account requires 2FA, please create an access token."
-    _usage
+    eval ${this}_err=\"Account requires 2FA, please create an access token.\"
+    return 20
   fi
 
   if [[ $_test_login == *"Bad credentials"* ]]; then
-    echo "ERR: Invalid username or password."
-    _usage
+    echo ${this}
+    eval ${this}_err=\"Invalid username or password.\"
+    return 30
   fi
 
   # Return the logged in users name on success
   eval ${this}_ret=$(curl $CURL_OPT $GITHUB_HOST/user | _jsonval login | xargs)
+  return 0
 }
-
 
 
 function _jsonval() {

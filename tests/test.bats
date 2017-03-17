@@ -14,6 +14,16 @@ GitHub "github"
   [ -n "${github_login+1}" ]
 }
 
+@test "can use the setter" {
+  $github_set GITHUB_HOST http://sample.url/
+  [ $GITHUB_HOST == "http://sample.url/" ]
+}
+
+@test "can use the getter" {
+  $github_get GITHUB_HOST
+  [ $github_ret == $GITHUB_HOST ]
+}
+
 @test "_jsonval helper test" {
   json='{"response":{"code":"200","message":"OK"},"item":"https://someurl.com/api/"}'
   code=$(echo ${json} | _jsonval code)
